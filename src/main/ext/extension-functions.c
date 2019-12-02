@@ -160,15 +160,15 @@ SQLITE_EXTENSION_INIT1
 typedef int(*cmp_func)(const void *, const void *);
 typedef void(*map_iterator)(void*, sqlite_int64, void*);
 
-typedef struct node{
-  struct node *l;
-  struct node *r;
+typedef struct tree_node{
+  struct tree_node *l;
+  struct tree_node *r;
   void* data;
   sqlite_int64 count;
-} node;
+} tree_node;
 
 typedef struct map{
-  node *base;
+  tree_node *base;
   cmp_func cmp;
   short free;
 } map;
@@ -1847,11 +1847,11 @@ void xfree(void* p){
   free(p);
 }
 
-void node_insert(node** n, cmp_func cmp, void *e){
+void node_insert(tree_node** n, cmp_func cmp, void *e){
   int c;
-  node* nn;
+  tree_node* nn;
   if(*n==0){
-    nn = (node*)xcalloc(1,sizeof(node), "for node");
+    nn = (tree_node*)xcalloc(1,sizeof(tree_node), "for node");
     nn->data = e;
     nn->count = 1;
     *n=nn;
@@ -1873,7 +1873,7 @@ void map_insert(map *m, void *e){
   node_insert(&(m->base), m->cmp, e);
 }
 
-void node_iterate(node *n, map_iterator iter, void* p){
+void node_iterate(tree_node *n, map_iterator iter, void* p){
   if(n){
     if(n->l)
       node_iterate(n->l, iter, p);
@@ -1887,7 +1887,7 @@ void map_iterate(map *m, map_iterator iter, void* p){
   node_iterate(m->base, iter, p);
 }
 
-void node_destroy(node *n){
+void node_destroy(tree_node *n){
   if(0!=n){
     xfree(n->data);
     if(n->l)

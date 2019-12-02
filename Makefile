@@ -22,6 +22,8 @@ endif
 
 CCFLAGS:= -I$(SQLITE_OUT) -I$(SQLITE_SOURCE) $(CCFLAGS)
 
+LINKFLAGS:= -luv -lbinn -lsecp256k1 $(LINKFLAGS)
+
 $(SQLITE_ARCHIVE):
 	@mkdir -p $(@D)
 	curl -L --max-redirs 0 -f -o$@ https://www.sqlite.org/2019/$(SQLITE_AMAL_PREFIX).zip || \

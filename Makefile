@@ -13,28 +13,19 @@ deploy:
 MVN:=mvn
 SRC:=src/main/java
 SQLITE_OUT:=$(TARGET)/$(sqlite)-$(OS_NAME)-$(OS_ARCH)
-SQLITE_ARCHIVE:=$(TARGET)/$(sqlite)-amal.zip
 SQLITE_UNPACKED:=$(TARGET)/sqlite-unpack.log
-SQLITE_SOURCE?=$(TARGET)/$(SQLITE_AMAL_PREFIX)
-ifneq ($(SQLITE_SOURCE),$(TARGET)/$(SQLITE_AMAL_PREFIX))
-	created := $(shell touch $(SQLITE_UNPACKED))
+
+ifndef SQLITE_SOURCE
+$(error set SQLITE_SOURCE variable)
 endif
 
 CCFLAGS:= -I$(SQLITE_OUT) -I$(SQLITE_SOURCE) $(CCFLAGS)
 
-LINKFLAGS:= -luv -lbinn -lsecp256k1 $(LINKFLAGS)
+LINKFLAGS:= -Wl,-rpath=/usr/local/lib -luv -lbinn -lsecp256k1-vrf $(LINKFLAGS)
 
-$(SQLITE_ARCHIVE):
+$(SQLITE_UNPACKED):
 	@mkdir -p $(@D)
-	curl -L --max-redirs 0 -f -o$@ https://www.sqlite.org/2019/$(SQLITE_AMAL_PREFIX).zip || \
-	curl -L --max-redirs 0 -f -o$@ https://www.sqlite.org/$(SQLITE_AMAL_PREFIX).zip || \
-	curl -L --max-redirs 0 -f -o$@ https://www.sqlite.org/$(SQLITE_OLD_AMAL_PREFIX).zip
-
-$(SQLITE_UNPACKED): $(SQLITE_ARCHIVE)
-	unzip -qo $< -d $(TARGET)/tmp.$(version)
-	(mv $(TARGET)/tmp.$(version)/$(SQLITE_AMAL_PREFIX) $(TARGET) && rmdir $(TARGET)/tmp.$(version)) || mv $(TARGET)/tmp.$(version)/ $(TARGET)/$(SQLITE_AMAL_PREFIX)
 	touch $@
-
 
 $(TARGET)/common-lib/org/sqlite/%.class: src/main/java/org/sqlite/%.java
 	@mkdir -p $(@D)
@@ -104,6 +95,7 @@ $(NATIVE_DLL): $(SQLITE_OUT)/$(LIBNAME)
 	cp $< $@
 	@mkdir -p $(NATIVE_TARGET_DIR)
 	cp $< $(NATIVE_TARGET_DIR)/$(LIBNAME)
+	cp $< libsqlitejdbc.jnilib
 
 DOCKER_RUN_OPTS=--rm
 

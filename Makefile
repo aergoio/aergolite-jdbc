@@ -29,12 +29,14 @@ $(SQLITE_UNPACKED):
 
 $(TARGET)/common-lib/org/sqlite/%.class: src/main/java/org/sqlite/%.java
 	@mkdir -p $(@D)
-	$(JAVAC) -source 1.5 -target 1.5 -sourcepath $(SRC) -d $(TARGET)/common-lib $<
+	$(JAVAC) -source 1.6 -target 1.6 -sourcepath $(SRC) -d $(TARGET)/common-lib $<
 
 jni-header: $(TARGET)/common-lib/NativeDB.h
 
-$(TARGET)/common-lib/NativeDB.h: $(TARGET)/common-lib/org/sqlite/core/NativeDB.class
-	$(JAVAH) -classpath $(TARGET)/common-lib -jni -o $@ org.sqlite.core.NativeDB
+$(TARGET)/common-lib/NativeDB.h: src/main/java/org/sqlite/core/NativeDB.java
+	@mkdir -p $(TARGET)/common-lib
+	$(JAVAC) -d $(TARGET)/common-lib -sourcepath $(SRC) -h $(TARGET)/common-lib src/main/java/org/sqlite/core/NativeDB.java
+	mv target/common-lib/org_sqlite_core_NativeDB.h target/common-lib/NativeDB.h
 
 test:
 	mvn test
@@ -88,7 +90,7 @@ NATIVE_DLL:=$(NATIVE_DIR)/$(LIBNAME)
 # Disabled linux-armv6 build because of this issue; https://github.com/dockcross/dockcross/issues/190
 native-all: native win32 win64 mac64 linux32 linux64 linux-arm linux-armv7 linux-arm64 linux-android-arm linux-ppc64
 
-native: jni-header $(SQLITE_UNPACKED) $(NATIVE_DLL)
+native: $(NATIVE_DLL)
 
 $(NATIVE_DLL): $(SQLITE_OUT)/$(LIBNAME)
 	@mkdir -p $(@D)
@@ -151,6 +153,7 @@ clean-native:
 
 clean-java:
 	rm -rf $(TARGET)/*classes
+	rm -rf $(TARGET)/common-lib/*
 	rm -rf $(TARGET)/sqlite-jdbc-*jar
 
 clean-tests:

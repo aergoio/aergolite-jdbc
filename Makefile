@@ -19,9 +19,37 @@ ifndef SQLITE_SOURCE
 $(error set SQLITE_SOURCE variable)
 endif
 
-CCFLAGS:= -I$(SQLITE_OUT) -I$(SQLITE_SOURCE) $(CCFLAGS)
 
-LINKFLAGS:= -Wl,-rpath=/usr/local/lib -luv -lbinn -lsecp256k1-vrf $(LINKFLAGS)
+CCFLAGS:= -I$(SQLITE_OUT) -I$(SQLITE_SOURCE) -I$(binn_inc) -I$(libuv_inc) -I$(libsecp_inc) $(CCFLAGS)
+
+LINKFLAGS:= $(binn_fpath) $(libuv_fpath) $(libsecp_fpath) $(LINKFLAGS)
+
+
+libuv:
+	git clone --depth=1 https://github.com/libuv/libuv
+
+binn:
+	git clone --depth=1 https://github.com/liteserver/binn
+
+secp256k1-vrf:
+	git clone --depth=1 https://github.com/aergoio/secp256k1-vrf
+
+
+$(libuv_fpath): libuv
+	cd libuv && ./autogen.sh
+	#cd libuv && ./configure --host=$(HOST) --disable-shared
+	cd libuv && ./configure --host=$(HOST) CFLAGS="-fPIC"
+	cd libuv && make
+
+$(binn_fpath): binn
+	cd binn && make libbinn.a CFLAGS="-fPIC"
+
+$(libsecp_fpath): secp256k1-vrf
+	cd secp256k1-vrf && ./autogen.sh
+	#cd secp256k1-vrf && ./configure --host=$(HOST) --disable-shared
+	cd secp256k1-vrf && ./configure --host=$(HOST) CFLAGS="-fPIC"
+	cd secp256k1-vrf && make
+
 
 $(SQLITE_UNPACKED):
 	@mkdir -p $(@D)
@@ -44,7 +72,7 @@ test:
 clean: clean-native clean-java clean-tests
 
 
-$(SQLITE_OUT)/sqlite3.o : $(SQLITE_UNPACKED)
+$(SQLITE_OUT)/sqlite3.o : $(SQLITE_UNPACKED) binn libuv secp256k1-vrf
 	@mkdir -p $(@D)
 	perl -p -e "s/sqlite3_api;/sqlite3_api = 0;/g" \
 	    $(SQLITE_SOURCE)/sqlite3ext.h > $(SQLITE_OUT)/sqlite3ext.h
@@ -73,7 +101,7 @@ $(SQLITE_OUT)/sqlite3.o : $(SQLITE_UNPACKED)
 	    $(SQLITE_FLAGS) \
 	    $(SQLITE_OUT)/sqlite3.c
 
-$(SQLITE_OUT)/$(LIBNAME): $(SQLITE_OUT)/sqlite3.o $(SRC)/org/sqlite/core/NativeDB.c
+$(SQLITE_OUT)/$(LIBNAME): jni-header $(SQLITE_OUT)/sqlite3.o $(SRC)/org/sqlite/core/NativeDB.c $(binn_fpath) $(libuv_fpath) $(libsecp_fpath)
 	@mkdir -p $(@D)
 	$(CC) $(CCFLAGS) -I $(TARGET)/common-lib -c -o $(SQLITE_OUT)/NativeDB.o $(SRC)/org/sqlite/core/NativeDB.c
 	$(CC) $(CCFLAGS) -o $@ $(SQLITE_OUT)/*.o $(LINKFLAGS)
@@ -97,49 +125,49 @@ $(NATIVE_DLL): $(SQLITE_OUT)/$(LIBNAME)
 	cp $< $@
 	@mkdir -p $(NATIVE_TARGET_DIR)
 	cp $< $(NATIVE_TARGET_DIR)/$(LIBNAME)
-	cp $< libsqlitejdbc.jnilib
+	#cp $< libsqlitejdbc.jnilib
 
 DOCKER_RUN_OPTS=--rm
 
 win32: $(SQLITE_UNPACKED) jni-header
-	./docker/dockcross-windows-x86 -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native CROSS_PREFIX=i686-w64-mingw32.static- OS_NAME=Windows OS_ARCH=x86'
+	./docker/dockcross-windows-x86 -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native HOST=i686-w64-mingw32.static OS_NAME=Windows OS_ARCH=x86 SQLITE_SOURCE="$(SQLITE_SOURCE)"'
 
 win64: $(SQLITE_UNPACKED) jni-header
-	./docker/dockcross-windows-x64 -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native CROSS_PREFIX=x86_64-w64-mingw32.static- OS_NAME=Windows OS_ARCH=x86_64'
+	./docker/dockcross-windows-x64 -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native HOST=x86_64-w64-mingw32.static OS_NAME=Windows OS_ARCH=x86_64 SQLITE_SOURCE="$(SQLITE_SOURCE)"'
 
 linux32: $(SQLITE_UNPACKED) jni-header
-	docker run $(DOCKER_RUN_OPTS) -ti -v $$PWD:/work xerial/centos5-linux-x86 bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=x86'
+	docker run $(DOCKER_RUN_OPTS) -ti -v $$PWD:/work xerial/centos5-linux-x86 bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=x86 SQLITE_SOURCE="$(SQLITE_SOURCE)"'
 
 linux64: $(SQLITE_UNPACKED) jni-header
-	docker run $(DOCKER_RUN_OPTS) -ti -v $$PWD:/work xerial/centos5-linux-x86_64 bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=x86_64'
+	docker run $(DOCKER_RUN_OPTS) -ti -v $$PWD:/work xerial/centos5-linux-x86_64 bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=x86_64 SQLITE_SOURCE="$(SQLITE_SOURCE)"'
 
 alpine-linux64: $(SQLITE_UNPACKED) jni-header
-	docker run $(DOCKER_RUN_OPTS) -ti -v $$PWD:/work xerial/alpine-linux-x86_64 bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=x86_64'
+	docker run $(DOCKER_RUN_OPTS) -ti -v $$PWD:/work xerial/alpine-linux-x86_64 bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=x86_64 SQLITE_SOURCE="$(SQLITE_SOURCE)"'
 
 linux-arm: $(SQLITE_UNPACKED) jni-header
-	./docker/dockcross-armv5 -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native CROSS_PREFIX=/usr/xcc/armv5-unknown-linux-gnueabi/bin/armv5-unknown-linux-gnueabi- OS_NAME=Linux OS_ARCH=arm'
+	./docker/dockcross-armv5 -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native HOST=/usr/xcc/armv5-unknown-linux-gnueabi/bin/armv5-unknown-linux-gnueabi OS_NAME=Linux OS_ARCH=arm SQLITE_SOURCE="$(SQLITE_SOURCE)"'
 
 linux-armv6: $(SQLITE_UNPACKED) jni-header
-	./docker/dockcross-armv6 -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native CROSS_PREFIX=arm-linux-gnueabihf- OS_NAME=Linux OS_ARCH=armv6'
+	./docker/dockcross-armv6 -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native HOST=arm-linux-gnueabihf OS_NAME=Linux OS_ARCH=armv6 SQLITE_SOURCE="$(SQLITE_SOURCE)"'
 
 linux-armv7: $(SQLITE_UNPACKED) jni-header
-	./docker/dockcross-armv7 -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native CROSS_PREFIX=/usr/xcc/armv7-unknown-linux-gnueabi/bin/armv7-unknown-linux-gnueabi- OS_NAME=Linux OS_ARCH=armv7'
+	./docker/dockcross-armv7 -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native HOST=/usr/xcc/armv7-unknown-linux-gnueabi/bin/armv7-unknown-linux-gnueabi OS_NAME=Linux OS_ARCH=armv7 SQLITE_SOURCE="$(SQLITE_SOURCE)"'
 
 linux-arm64: $(SQLITE_UNPACKED) jni-header
-	./docker/dockcross-arm64 -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native CROSS_PREFIX=/usr/xcc/aarch64-unknown-linux-gnueabi/bin/aarch64-unknown-linux-gnueabi- OS_NAME=Linux OS_ARCH=aarch64'
+	./docker/dockcross-arm64 -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native HOST=/usr/xcc/aarch64-unknown-linux-gnueabi/bin/aarch64-unknown-linux-gnueabi OS_NAME=Linux OS_ARCH=aarch64 SQLITE_SOURCE="$(SQLITE_SOURCE)"'
 
 linux-android-arm: $(SQLITE_UNPACKED) jni-header
-	./docker/dockcross-android-arm -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native CROSS_PREFIX=/usr/arm-linux-androideabi/bin/arm-linux-androideabi- OS_NAME=Linux OS_ARCH=android-arm'
+	./docker/dockcross-android-arm -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native HOST=/usr/arm-linux-androideabi/bin/arm-linux-androideabi OS_NAME=Linux OS_ARCH=android-arm SQLITE_SOURCE="$(SQLITE_SOURCE)"'
 
 linux-ppc64: $(SQLITE_UNPACKED) jni-header
-	./docker/dockcross-ppc64 -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native CROSS_PREFIX=powerpc64le-linux-gnu- OS_NAME=Linux OS_ARCH=ppc64'
+	./docker/dockcross-ppc64 -a $(DOCKER_RUN_OPTS) bash -c 'make clean-native native HOST=powerpc64le-linux-gnu OS_NAME=Linux OS_ARCH=ppc64 SQLITE_SOURCE="$(SQLITE_SOURCE)"'
 
 mac64: $(SQLITE_UNPACKED) jni-header
-	docker run -it $(DOCKER_RUN_OPTS) -v $$PWD:/workdir -e CROSS_TRIPLE=x86_64-apple-darwin multiarch/crossbuild make clean-native native OS_NAME=Mac OS_ARCH=x86_64
+	docker run -it $(DOCKER_RUN_OPTS) -v $$PWD:/workdir -e CROSS_TRIPLE=x86_64-apple-darwin multiarch/crossbuild make clean-native native HOST=x86_64-apple-darwin OS_NAME=Mac OS_ARCH=x86_64 SQLITE_SOURCE="$(SQLITE_SOURCE)"
 
 # deprecated
 mac32: $(SQLITE_UNPACKED) jni-header
-	docker run -it $(DOCKER_RUN_OPTS) -v $$PWD:/workdir -e CROSS_TRIPLE=i386-apple-darwin multiarch/crossbuild make clean-native native OS_NAME=Mac OS_ARCH=x86
+	docker run -it $(DOCKER_RUN_OPTS) -v $$PWD:/workdir -e CROSS_TRIPLE=i386-apple-darwin multiarch/crossbuild make clean-native native HOST=i386-apple-darwin OS_NAME=Mac OS_ARCH=x86 SQLITE_SOURCE="$(SQLITE_SOURCE)"
 
 sparcv9:
 	$(MAKE) native OS_NAME=SunOS OS_ARCH=sparcv9
@@ -150,6 +178,12 @@ package: native-all
 
 clean-native:
 	rm -rf $(SQLITE_OUT)
+	#rm -f $(binn_fpath)
+	#rm -f $(libuv_fpath)
+	#rm -f $(libsecp_fpath)
+	-cd binn && make clean
+	-cd libuv && make clean
+	-cd secp256k1-vrf && make clean
 
 clean-java:
 	rm -rf $(TARGET)/*classes

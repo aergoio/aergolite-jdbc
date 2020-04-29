@@ -31,6 +31,24 @@ else
 	sep := :
 endif
 
+
+binn_file    = libbinn.a
+libuv_file   = libuv.a
+libsecp_file = libsecp256k1-vrf.a
+
+libuv_inc    = libuv/include/
+binn_inc     = binn/src/
+libsecp_inc  = secp256k1-vrf/include
+
+libuv_path   = libuv/.libs/
+binn_path    = binn/
+libsecp_path = secp256k1-vrf/.libs/
+
+libuv_fpath   = $(libuv_path)$(libuv_file)
+binn_fpath    = $(binn_path)$(binn_file)
+libsecp_fpath = $(libsecp_path)$(libsecp_file)
+
+
 sqlite := sqlite-$(version)
 
 ifdef JAVA_HOME
@@ -55,7 +73,11 @@ ifeq (,$(findstring $(strip $(target)),$(known_targets)))
 endif
 
 # cross-compilation toolchain prefix (e.g. "arm-linux-gnueabi-")
+ifneq ($(HOST),)
+CROSS_PREFIX := $(HOST)-
+else
 CROSS_PREFIX :=
+endif
 
 Default_CC        := $(CROSS_PREFIX)gcc
 Default_STRIP     := $(CROSS_PREFIX)strip
@@ -155,14 +177,14 @@ Mac-x86_64_SQLITE_FLAGS  :=
 Windows-x86_CC           := $(CROSS_PREFIX)gcc
 Windows-x86_STRIP        := $(CROSS_PREFIX)strip
 Windows-x86_CCFLAGS      := -D_JNI_IMPLEMENTATION_ -Ilib/inc_win -Os
-Windows-x86_LINKFLAGS    := -Wl,--kill-at -shared -static-libgcc
+Windows-x86_LINKFLAGS    := -Wl,--kill-at -shared -static-libgcc -lws2_32 -lpsapi -liphlpapi -lshell32 -luserenv -luser32
 Windows-x86_LIBNAME      := sqlitejdbc.dll
 Windows-x86_SQLITE_FLAGS := 
 
 Windows-x86_64_CC           := $(CROSS_PREFIX)gcc
 Windows-x86_64_STRIP        := $(CROSS_PREFIX)strip
 Windows-x86_64_CCFLAGS      := -D_JNI_IMPLEMENTATION_ -Ilib/inc_win -Os
-Windows-x86_64_LINKFLAGS    := -Wl,--kill-at -shared -static-libgcc
+Windows-x86_64_LINKFLAGS    := -Wl,--kill-at -shared -static-libgcc -lws2_32 -lpsapi -liphlpapi -lshell32 -luserenv -luser32
 Windows-x86_64_LIBNAME      := sqlitejdbc.dll
 Windows-x86_64_SQLITE_FLAGS := 
 

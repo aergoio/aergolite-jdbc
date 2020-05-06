@@ -2,6 +2,7 @@ include VERSION
 
 ifndef JAVA_HOME
 $(warning Set JAVA_HOME environment variable)
+#JAVA_HOME=/usr   <- causes problem when building for Mac, related to jni_include bellow
 endif
 
 JAVA  := "$$JAVA_HOME/bin/java"
@@ -82,7 +83,7 @@ endif
 Default_CC        := $(CROSS_PREFIX)gcc
 Default_STRIP     := $(CROSS_PREFIX)strip
 Default_CCFLAGS   := -I$(JAVA_HOME)/include -Ilib/inc_linux -Os -fPIC -fvisibility=hidden
-Default_LINKFLAGS := -shared
+Default_LINKFLAGS := -shared -static-libgcc
 Default_LIBNAME   := libsqlitejdbc.so
 Default_SQLITE_FLAGS  := 
 
@@ -95,7 +96,7 @@ Linux-x86_SQLITE_FLAGS  :=
 
 Linux-x86_64_CC        := $(CROSS_PREFIX)gcc
 Linux-x86_64_STRIP     := $(CROSS_PREFIX)strip
-Linux-x86_64_CCFLAGS   := -Ilib/inc_linux -I$(JAVA_HOME)/include -Os -fPIC -m64 -fvisibility=hidden
+Linux-x86_64_CCFLAGS   := -I$(JAVA_HOME)/include -Ilib/inc_linux -Os -fPIC -m64 -fvisibility=hidden
 Linux-x86_64_LINKFLAGS := -shared -static-libgcc
 Linux-x86_64_LIBNAME   := libsqlitejdbc.so
 Linux-x86_64_SQLITE_FLAGS  := 

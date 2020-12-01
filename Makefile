@@ -56,7 +56,7 @@ $(binn_fpath): binn
 
 $(libsecp_fpath): secp256k1-vrf
 	cd secp256k1-vrf && ./autogen.sh
-	cd secp256k1-vrf && ./configure --host=$(HOST) --disable-shared $(FPICFLAGS)
+	cd secp256k1-vrf && ./configure --host=$(HOST) --disable-shared --disable-tests --disable-exhaustive-tests --disable-benchmark $(FPICFLAGS)
 	cd secp256k1-vrf && make
 
 

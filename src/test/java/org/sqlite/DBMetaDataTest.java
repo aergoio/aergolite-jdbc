@@ -1233,7 +1233,7 @@ public class DBMetaDataTest
       int minorVersion = Integer.valueOf(versionString.split("\\.")[1]);
       
       assertTrue("major version check", majorVersion > 0);
-      assertEquals("driver name","SQLite JDBC", meta.getDriverName());
+      assertEquals("driver name","AergoLite JDBC", meta.getDriverName());
       assertTrue("driver version", meta.getDriverVersion().startsWith(String.format("%d.%d", majorVersion, minorVersion)));
       assertEquals("driver major version", majorVersion, meta.getDriverMajorVersion());
       assertEquals("driver minor version", minorVersion, meta.getDriverMinorVersion());

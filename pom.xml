@@ -3,10 +3,10 @@
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.xerial</groupId>
-  <artifactId>sqlite-jdbc</artifactId>
+  <artifactId>aergolite-jdbc</artifactId>
   <version>3.27.2</version>
-  <name>SQLite JDBC</name>
-  <description>SQLite JDBC library</description>
+  <name>AergoLite JDBC</name>
+  <description>AergoLite JDBC library</description>
 
   <parent>
     <groupId>org.sonatype.oss</groupId>
